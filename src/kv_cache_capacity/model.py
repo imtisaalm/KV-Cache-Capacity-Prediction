@@ -2,8 +2,11 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 import json
+import os
 from pathlib import Path
 from typing import Any
+
+import httpx
 
 
 @dataclass(frozen=True)
@@ -27,13 +30,7 @@ class ModelConfig:
         return self.hidden_size // self.num_attention_heads
 
     def token_layer_units(self, context_length: int) -> int:
-        """Return cached token-layer positions for one sequence.
-
-        If ``sliding_window`` is present and ``full_attention_layers`` is omitted,
-        the window is conservatively assumed to apply to every layer. For hybrid
-        models, set ``full_attention_layers`` to the number of layers retaining the
-        full context.
-        """
+        """Return cached token-layer positions for one sequence."""
         if context_length <= 0:
             raise ValueError("context_length must be positive")
         if self.sliding_window is None:
@@ -63,3 +60,40 @@ class ModelConfig:
     def from_json(cls, path: str | Path) -> "ModelConfig":
         with Path(path).open("r", encoding="utf-8") as handle:
             return cls.from_mapping(json.load(handle))
+
+    @classmethod
+    def from_huggingface(
+        cls,
+        model_id: str,
+        *,
+        token: str | None = None,
+        timeout: float = 15.0,
+    ) -> "ModelConfig":
+        """Load config.json for a model hosted on Hugging Face."""
+        if not model_id or "/" not in model_id:
+            raise ValueError("model_id must use the namespace/model form")
+        headers: dict[str, str] = {}
+        auth_token = token or os.getenv("HF_TOKEN")
+        if auth_token:
+            headers["Authorization"] = f"Bearer {auth_token}"
+
+        url = f"https://huggingface.co/{model_id}/resolve/main/config.json"
+        response = httpx.get(
+            url,
+            headers=headers,
+            timeout=timeout,
+            follow_redirects=True,
+        )
+        response.raise_for_status()
+        payload = response.json()
+        if not isinstance(payload, dict):
+            raise ValueError("Hugging Face config response must be a JSON object")
+        return cls.from_mapping(payload)
+
+
+def load_model_config(source: str | Path) -> ModelConfig:
+    """Load a local config.json path or a Hugging Face model ID."""
+    path = Path(source).expanduser()
+    if path.is_file():
+        return ModelConfig.from_json(path)
+    return ModelConfig.from_huggingface(str(source))
