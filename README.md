@@ -2,7 +2,7 @@
 
 A Python package for estimating transformer KV-cache tensor memory and inspecting live KV-cache utilization from a vLLM server.
 
-The estimator operates on normalized model configuration fields rather than a hard-coded model table. The monitor reads vLLM's Prometheus-compatible `/metrics` endpoint.
+The estimator operates on normalized model configuration fields and does not use a hard-coded model table. The monitor reads vLLM's Prometheus-compatible `/metrics` endpoint.
 
 ## Scope
 
@@ -20,8 +20,6 @@ where the factor of two accounts for key and value tensors. The implementation s
 - sliding-window layers
 - hybrid full-attention/sliding-window layer counts
 - concurrent sequences
-
-The result is a tensor-footprint estimate. It does not include model weights, activations, CUDA graphs, allocator fragmentation, block-alignment overhead, or engine-specific reservation policy.
 
 ## Installation
 
