@@ -25,6 +25,7 @@ class CacheEstimate:
     kv_dtype: str
     tensor_parallel_size: int
     bytes_per_element: float
+    local_kv_heads: int
     bytes_per_token_per_layer: float
     token_layer_units_per_sequence: int
     bytes_per_sequence_per_rank: float
@@ -55,21 +56,23 @@ def estimate_kv_cache(
     """
     if concurrency <= 0:
         raise ValueError("concurrency must be positive")
-    if tensor_parallel_size <= 0:
-        raise ValueError("tensor_parallel_size must be positive")
 
     normalized_dtype = kv_dtype.lower()
     try:
         element_bytes = DTYPE_BYTES[normalized_dtype]
     except KeyError as exc:
         supported = ", ".join(sorted(DTYPE_BYTES))
-        raise ValueError(f"unsupported KV dtype {kv_dtype!r}; expected one of: {supported}") from exc
+        raise ValueError(
+            f"unsupported KV dtype {kv_dtype!r}; expected one of: {supported}"
+        ) from exc
 
-    kv_width = model.num_key_value_heads * model.effective_head_dim
+    local_kv_heads = model.local_kv_heads(tensor_parallel_size)
+    local_kv_width = local_kv_heads * model.effective_head_dim
+
     # Key and value tensors are both retained for each cached token.
-    bytes_per_token_per_layer = 2 * kv_width * element_bytes
+    bytes_per_token_per_layer = 2 * local_kv_width * element_bytes
     token_layer_units = model.token_layer_units(context_length)
-    per_sequence = bytes_per_token_per_layer * token_layer_units / tensor_parallel_size
+    per_sequence = bytes_per_token_per_layer * token_layer_units
     total = per_sequence * concurrency
 
     return CacheEstimate(
@@ -78,6 +81,7 @@ def estimate_kv_cache(
         kv_dtype=normalized_dtype,
         tensor_parallel_size=tensor_parallel_size,
         bytes_per_element=element_bytes,
+        local_kv_heads=local_kv_heads,
         bytes_per_token_per_layer=bytes_per_token_per_layer,
         token_layer_units_per_sequence=token_layer_units,
         bytes_per_sequence_per_rank=per_sequence,
