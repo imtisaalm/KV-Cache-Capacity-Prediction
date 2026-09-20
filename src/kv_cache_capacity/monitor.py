@@ -34,7 +34,7 @@ def parse_prometheus(text: str) -> dict[str, list[float]]:
 
     Labels are intentionally collapsed because the vLLM gauges consumed here are
     engine-level values. Multiple samples with the same name remain available as
-    a list and are summed by ``metric_sum``.
+    a list and are summed by metric_sum.
     """
     result: dict[str, list[float]] = {}
     for raw_line in text.splitlines():
@@ -66,12 +66,26 @@ def snapshot_from_metrics(text: str) -> VLLMSnapshot:
         running_requests=metric_sum(metrics, ["vllm:num_requests_running"]),
         waiting_requests=metric_sum(metrics, ["vllm:num_requests_waiting"]),
         prefix_cache_hits=metric_sum(
-            metrics, ["vlm:prefix_cache_hits", "vllm:prefix_cache_hits_total"]
+            metrics,
+            [
+                "vllm:prefix_cache_hits",
+                "vllm:prefix_cache_hits_total",
+                "vllm:gpu_prefix_cache_hits",
+                "vllm:gpu_prefix_cache_hits_total",
+            ],
         ),
         prefix_cache_queries=metric_sum(
-            metrics, ["vllm:prefix_cache_queries", "vllm:prefix_cache_queries_total"]
+            metrics,
+            [
+                "vllm:prefix_cache_queries",
+                "vllm:prefix_cache_queries_total",
+                "vllm:gpu_prefix_cache_queries",
+                "vllm:gpu_prefix_cache_queries_total",
+            ],
         ),
-        preemptions=metric_sum(metrics, ["vllm:num_preemptions", "vllm:num_preemptions_total"]),
+        preemptions=metric_sum(
+            metrics, ["vllm:num_preemptions", "vllm:num_preemptions_total"]
+        ),
     )
 
 
