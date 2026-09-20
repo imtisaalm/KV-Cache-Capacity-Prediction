@@ -90,7 +90,7 @@ class ModelConfig:
         )
 
     @classmethod
-    def from_mapping(cls, raw: dict[str, Any]) -> "ModelConfig":
+    def from_mapping(cls, raw: dict[str, Any]) -> ModelConfig:
         attention_heads = int(raw["num_attention_heads"])
         full_layers = raw.get("full_attention_layers")
         return cls(
@@ -110,7 +110,7 @@ class ModelConfig:
         )
 
     @classmethod
-    def from_json(cls, path: str | Path) -> "ModelConfig":
+    def from_json(cls, path: str | Path) -> ModelConfig:
         with Path(path).open("r", encoding="utf-8") as handle:
             return cls.from_mapping(json.load(handle))
 
@@ -121,7 +121,7 @@ class ModelConfig:
         *,
         token: str | None = None,
         timeout: float = 15.0,
-    ) -> "ModelConfig":
+    ) -> ModelConfig:
         """Load config.json for a model hosted on Hugging Face."""
         if not model_id or "/" not in model_id:
             raise ValueError("model_id must use the namespace/model form")
