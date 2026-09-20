@@ -7,13 +7,16 @@ name = "kv-cache-capacity"
 version = "0.1.0"
 description = "Estimate transformer KV-cache memory and inspect live vLLM cache utilization."
 requires-python = ">=3.10"
-dependencies = ["httpx>=0.27", "pydantic>=2.7", "typer>=0.12"]
+dependencies = ["httpx>=0.27", "typer>=0.12"]
 
 [project.optional-dependencies]
 test = ["pytest>=8.0"]
 
 [project.scripts]
 kv-cache = "kv_cache_capacity.cli:app"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/kv_cache_capacity"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
