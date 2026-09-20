@@ -1,12 +1,11 @@
 from __future__ import annotations
 
 import time
-from pathlib import Path
 
 import typer
 
 from .estimate import estimate_kv_cache
-from .model import ModelConfig
+from .model import load_model_config
 from .monitor import VLLMSnapshot, fetch_vllm_snapshot
 
 app = typer.Typer(add_completion=False, no_args_is_help=True)
@@ -32,14 +31,17 @@ def _snapshot_line(snapshot: VLLMSnapshot) -> str:
 
 @app.command()
 def estimate(
-    config: Path = typer.Argument(..., exists=True, readable=True),
+    source: str = typer.Argument(
+        ...,
+        help="Local config.json path or Hugging Face model ID.",
+    ),
     context: int = typer.Option(..., min=1),
     concurrency: int = typer.Option(1, min=1),
     kv_dtype: str = typer.Option("bf16", "--kv-dtype"),
     tensor_parallel: int = typer.Option(1, "--tensor-parallel", min=1),
 ) -> None:
-    """Estimate KV tensor memory from a Hugging Face-style model config."""
-    model = ModelConfig.from_json(config)
+    """Estimate KV tensor memory from a local config or hosted model config."""
+    model = load_model_config(source)
     result = estimate_kv_cache(
         model,
         context_length=context,
